@@ -14,8 +14,16 @@
     path: "/etc/packetbeat/.packetbeat_es_index_template_imported"
   register: "packetbeat_es_index_template_imported_check"
 
+- name: config_packetbeat | load template to variable
+  shell: cat /etc/packetbeat/packetbeat.template.json
+  register: es_packetbeat_template
+
 - name: config_packetbeat | loading packetbeat ES Index Template
-  command: "curl -XPUT 'http://{{ es_packetbeat_elasticsearch_host }}/_template/packetbeat' -d@/etc/packetbeat/packetbeat.template.json"
+  uri:
+    url: "http://{{ es_packetbeat_elasticsearch_host }}/_template/packetbeat"
+    method: PUT
+    user: es_packetbeat_user
+    password: es_packetbeat_pass
   register: "packetbeat_es_index_template_imported"
   when: not packetbeat_es_index_template_imported_check.stat.exists
 
@@ -39,7 +47,7 @@
   register: "extract_packetbeat_dashboards"
 
 - name: config_packetbeat | loading packetbeat dashboards
-  shell: "./load.sh -url http://{{ es_packetbeat_elasticsearch_host }}"
+  shell: "./load.sh -url http://{{ es_packetbeat_elasticsearch_host }} -user {{ es_packetbeat_user }}:{{ es_packetbeat_pass }}"
   args:
     chdir: "{{ es_packetbeat_dashboard_dir }}"
   when: extract_packetbeat_dashboards.changed
